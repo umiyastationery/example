@@ -39,7 +39,7 @@ if uploaded_file:
         # Upload original file to Supabase
         with open(temp_path, "rb") as f:
             supabase.storage.from_(BUCKET_NAME).upload(f"original/{uploaded_file.name}", f)
-        
+
         progress.progress(60)
         st.success("✅ File stored in Supabase")
 
@@ -63,23 +63,17 @@ if uploaded_file:
             except ImportError:
                 st.warning("⚠️ DOCX to PDF conversion requires Windows (MS Word).")
 
-        elif ext in [".jpg", ".jpeg"]:
-            converted_file_name = uploaded_file.name.replace(".jpg", ".png").replace(".jpeg", ".png")
-            converted_file_path = temp_path.replace(".jpg", ".png").replace(".jpeg", ".png")
-            img = Image.open(temp_path).convert("RGB")
-            img.save(converted_file_path, "PNG")
+        elif ext in [".jpg", ".jpeg", ".png"]:
+            if ext in [".jpg", ".jpeg"]:
+                converted_file_name = uploaded_file.name.replace(".jpg", ".png").replace(".jpeg", ".png")
+                converted_format = "PNG"
+            else:
+                converted_file_name = uploaded_file.name.replace(".png", ".jpg")
+                converted_format = "JPEG"
 
-        elif ext == ".png":
-            converted_file_name = uploaded_file.name.replace(".png", ".jpg")
-            converted_file_path = temp_path.replace(".png", ".jpg")
+            converted_file_path = os.path.join(tempfile.gettempdir(), converted_file_name)
             img = Image.open(temp_path).convert("RGB")
-            img.save(converted_file_path, "JPEG")
-
-        elif ext in [".jpg", ".jpeg"]:
-            converted_file_name = uploaded_file.name.replace(".jpg", ".pdf").replace(".jpeg", ".pdf")
-            converted_file_path = temp_path.replace(".jpg", ".pdf").replace(".jpeg", ".pdf")
-            img = Image.open(temp_path).convert("RGB")
-            img.save(converted_file_path, "PDF")
+            img.save(converted_file_path, converted_format)
 
         # Upload converted file to Supabase
         if converted_file_path:
@@ -89,9 +83,25 @@ if uploaded_file:
             progress.progress(100)
             st.success(f"✅ Converted File Saved: {converted_file_name}")
 
-            # Download Link
+            # Generate Public URL for Download
             download_url = supabase.storage.from_(BUCKET_NAME).get_public_url(f"converted/{converted_file_name}")
-            st.markdown(f"📥 [Download Converted File]({download_url})")
+
+            # Show Image Preview for PNG/JPG
+            if converted_file_name.endswith((".jpg", ".jpeg", ".png")):
+                st.image(converted_file_path, caption="Converted Image Preview", use_column_width=True)
+
+                # Provide a Download Button for Better Mobile Support
+                with open(converted_file_path, "rb") as file:
+                    btn = st.download_button(
+                        label="📥 Download Converted Image",
+                        data=file,
+                        file_name=converted_file_name,
+                        mime=f"image/{converted_format.lower()}"
+                    )
+
+            else:
+                # Normal Download Link for Other File Types
+                st.markdown(f"📥 [Download Converted File]({download_url})")
 
             # Cleanup temp files
             os.remove(temp_path)
