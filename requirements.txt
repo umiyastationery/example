@@ -1,3 +1,5 @@
 streamlit
 supabase
 pdf2docx
+docx2pdf
+Pillow
