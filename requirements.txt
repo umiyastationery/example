@@ -1,5 +1,5 @@
 streamlit
-supabase
+pdf2image
 pdf2docx
-docx2pdf
 Pillow
+supabase
